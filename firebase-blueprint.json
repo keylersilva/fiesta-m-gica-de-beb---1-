@@ -1,0 +1,83 @@
+{
+  "entities": {
+    "Config": {
+      "title": "Config",
+      "description": "Global event configuration",
+      "type": "object",
+      "properties": {
+        "totalSpots": {
+          "type": "number",
+          "description": "Maximum number of guests allowed"
+        },
+        "eventName": {
+          "type": "string",
+          "description": "Name of the birthday event"
+        },
+        "eventDate": {
+          "type": "string",
+          "description": "Date of the event"
+        },
+        "registrationOpen": {
+          "type": "boolean",
+          "description": "Whether registration is currently open"
+        }
+      },
+      "required": ["totalSpots", "eventName", "eventDate", "registrationOpen"]
+    },
+    "Guest": {
+      "title": "Guest",
+      "description": "Information about an invited guest",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Full name of the guest"
+        },
+        "email": {
+          "type": "string",
+          "description": "Email address of the guest"
+        },
+        "companions": {
+          "type": "number",
+          "description": "Number of people coming with this guest"
+        },
+        "checkedIn": {
+          "type": "boolean",
+          "description": "Whether the guest has arrived at the event"
+        },
+        "registeredAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "When the guest registered"
+        },
+        "verificationCode": {
+          "type": "string",
+          "description": "A simple code for entry verification"
+        }
+      },
+      "required": ["name", "email", "companions", "checkedIn", "registeredAt", "verificationCode"]
+    },
+    "Admin": {
+      "title": "Admin",
+      "description": "Authorized administrators",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string" }
+      }
+    }
+  },
+  "firestore": {
+    "/config/general": {
+      "schema": "Config",
+      "description": "Event global configuration"
+    },
+    "/guests/{guestId}": {
+      "schema": "Guest",
+      "description": "Collection of all registered guests"
+    },
+    "/admins/{adminId}": {
+      "schema": "Admin",
+      "description": "Authorized administrators"
+    }
+  }
+}

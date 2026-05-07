@@ -1,0 +1,59 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 0. Default Deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isSignedIn() { return request.auth != null; }
+    function isAdmin() { 
+      return isSignedIn() && (
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid)) ||
+        request.auth.token.email == 'untalkeiler@gmail.com'
+      ); 
+    }
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+    function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
+
+    // Validation for Guest
+    function isValidGuest(data) {
+      return data.name is string && data.name.size() > 0 && data.name.size() <= 100
+          && data.email is string && data.email.size() > 0 && data.email.size() <= 100
+          && data.companions is int && data.companions >= 0 && data.companions <= 10
+          && data.checkedIn is bool
+          && data.registeredAt is timestamp
+          && data.verificationCode is string && data.verificationCode.size() > 0 && data.verificationCode.size() <= 20;
+    }
+
+    // Rules for Config
+    match /config/general {
+      allow read: if true; // Publicly readable for availability check
+      allow write: if isAdmin();
+    }
+
+    // Rules for Guests
+    match /guests/{guestId} {
+      allow create: if isValidId(guestId) && isValidGuest(incoming()) && incoming().checkedIn == false;
+      allow read: if isAdmin(); // Only admins can see the full list
+      allow update: if (
+        isAdmin() && 
+        (
+          // Action: Check-in
+          (incoming().diff(existing()).affectedKeys().hasOnly(['checkedIn']) && incoming().checkedIn == true) ||
+          // Action: Full Edit (Admin only)
+          (isValidGuest(incoming()))
+        )
+      );
+      allow delete: if isAdmin();
+    }
+
+    // Rules for Admins
+    match /admins/{adminId} {
+      allow read: if isSignedIn() && (request.auth.uid == adminId || isAdmin());
+      allow write: if isSignedIn() && request.auth.token.email == 'untalkeiler@gmail.com'; 
+    }
+  }
+}

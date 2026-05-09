@@ -52,7 +52,7 @@ interface Config {
 interface Guest {
   id: string;
   name: string;
-  email: string;
+  whatsapp: string;
   companions: number;
   checkedIn: boolean;
   registeredAt: any;
@@ -351,7 +351,7 @@ function Footer() {
 // --- SUB-COMPONENTS ---
 
 function RegistrationView({ config }: { config: Config | null }) {
-  const [formData, setFormData] = useState({ name: '', email: '', companions: 0 });
+  const [formData, setFormData] = useState({ name: '', whatsapp: '', companions: 0 });
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
   const [totalRegistered, setTotalRegistered] = useState(0);
@@ -381,7 +381,7 @@ function RegistrationView({ config }: { config: Config | null }) {
       setVCode(verificationCode);
       const guestData = {
         name: formData.name,
-        email: formData.email,
+        whatsapp: formData.whatsapp,
         companions: Number(formData.companions),
         checkedIn: false,
         registeredAt: Timestamp.now(),
@@ -391,7 +391,6 @@ function RegistrationView({ config }: { config: Config | null }) {
       await addDoc(collection(db, 'guests'), guestData);
       setStatus('success');
     } catch (err) {
-      console.error(err);
       setStatus('error');
       setErrorMessage("No pudimos completar tu registro. Intenta de nuevo.");
     }
@@ -501,14 +500,14 @@ function RegistrationView({ config }: { config: Config | null }) {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-zinc-700 mb-1">Correo Electrónico</label>
+              <label className="block text-sm font-medium text-zinc-700 mb-1">Número de WhatsApp</label>
               <input 
                 required
-                type="email" 
-                value={formData.email}
-                onChange={e => setFormData({...formData, email: e.target.value})}
+                type="tel"
+                value={formData.whatsapp}
+                onChange={e => setFormData({...formData, whatsapp: e.target.value})}
                 className="w-full px-4 py-3 rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
-                placeholder="tu@email.com"
+                placeholder="+57 300 123 4567"
               />
             </div>
             <div>
@@ -556,7 +555,7 @@ function AdminDashboard({ config, guests }: { config: Config | null, guests: Gue
 
   const filteredGuests = guests.filter(g => 
     g.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    g.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    g.whatsapp.toLowerCase().includes(searchTerm.toLowerCase()) ||
     g.verificationCode.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -665,7 +664,7 @@ function AdminDashboard({ config, guests }: { config: Config | null, guests: Gue
                       <tr key={guest.id} className={`hover:bg-zinc-50 transition-colors ${guest.checkedIn ? 'bg-green-50/30' : ''}`}>
                         <td className="px-6 py-4">
                           <div className="font-medium text-zinc-900">{guest.name}</div>
-                          <div className="text-xs text-zinc-500">{guest.email}</div>
+                          <div className="text-xs text-zinc-500">{guest.whatsapp}</div>
                         </td>
                         <td className="px-6 py-4 text-center font-mono font-bold">
                           {1 + guest.companions}

@@ -33,7 +33,12 @@ import {
   Settings,
   Calendar,
   MapPin,
-  Baby
+  Baby,
+  Instagram,
+  Facebook,
+  Youtube,
+  Mail,
+  Phone
 } from 'lucide-react';
 
 // Types
@@ -161,7 +166,10 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen baby-bg">
+    <div className="min-h-screen relative">
+      {/* Fixed background layer for parallax effect on mobile */}
+      <div className="fixed inset-0 -z-10 bg-cover bg-center bg-no-repeat" style={{ backgroundImage: 'linear-gradient(rgba(0,0, 0, 0.4), rgba(0, 0, 0, 0.4)), url(/fotoashly.webp)' }} />
+      
       {/* Navigation */}
       <nav className="p-4 flex justify-between items-center max-w-5xl mx-auto border-b border-white/10">
         <div className="flex items-center gap-2 cursor-pointer" onClick={() => setView('home')}>
@@ -232,9 +240,110 @@ export default function App() {
       </main>
 
       {/* Footer */}
-      <footer className="py-12 border-t border-white/10 mt-20 text-center">
-        <p className="text-white/50 text-sm italic font-serif">Hecho con amor para un día especial ✨</p>
+      <footer className="mt-20">
+        <Footer />
       </footer>
+    </div>
+  );
+}
+
+function Footer() {
+  const footerLinks = [
+    { label: 'Inicio', href: '#home' },
+    { label: 'Galería', href: '#gallery' },
+    { label: 'Confirmar asistencia', href: '#rsvp' },
+    { label: 'Ubicación', href: '#location' },
+    { label: 'Contacto', href: '#contact' },
+  ];
+
+  const socialLinks = [
+    { icon: Instagram, href: 'https://instagram.com', label: 'Instagram' },
+    { icon: Facebook, href: 'https://facebook.com', label: 'Facebook' },
+    { icon: Youtube, href: 'https://youtube.com', label: 'YouTube' },
+  ];
+
+  return (
+    <div className="bg-zinc-900/80 backdrop-blur-md border-t border-white/5">
+      <div className="max-w-5xl mx-auto px-4 py-12">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
+          <div className="space-y-4">
+            <div className="flex items-center gap-2">
+              <div className="bg-primary/20 p-2 rounded-full">
+                <Cake size={20} className="text-primary" />
+              </div>
+              <h3 className="font-serif font-semibold text-lg text-white">Mi Primer Cumpleaños</h3>
+            </div>
+            <h4 className="font-serif text-xl text-primary font-medium">Ashly Sofía</h4>
+            <p className="text-white/60 text-sm leading-relaxed max-w-xs">
+              Una celebración mágica llena de amor, alegría y momentos preciosos. 
+              Gracias por ser parte de este día tan especial.
+            </p>
+          </div>
+
+          <div className="space-y-4">
+            <h3 className="font-serif font-semibold text-lg text-white">Enlaces Rápidos</h3>
+            <ul className="space-y-2">
+              {footerLinks.map((link) => (
+                <li key={link.label}>
+                  <a 
+                    href={link.href}
+                    className="text-white/60 text-sm hover:text-primary transition-colors duration-300"
+                  >
+                    {link.label}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div className="space-y-4">
+            <h3 className="font-serif font-semibold text-lg text-white">Síguenos</h3>
+            <p className="text-white/60 text-sm">
+              Comparte este momento mágico con nosotros
+            </p>
+            <div className="flex gap-3">
+              {socialLinks.map((social) => (
+                <a
+                  key={social.label}
+                  href={social.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={social.label}
+                  className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-white/60 hover:bg-primary/20 hover:text-primary transition-all duration-300 border border-white/10 hover:border-primary/30"
+                >
+                  <social.icon size={18} />
+                </a>
+              ))}
+            </div>
+            <div className="pt-2 space-y-2">
+              <a href="mailto:celebration@ashly.com" className="flex items-center gap-2 text-white/60 text-sm hover:text-primary transition-colors">
+                <Mail size={14} />
+                celebration@ashly.com
+              </a>
+              <a href="tel:+1234567890" className="flex items-center gap-2 text-white/60 text-sm hover:text-primary transition-colors">
+                <Phone size={14} />
+                +1 234 567 890
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-12 pt-8 border-t border-white/10">
+          <div className="flex flex-col md:flex-row justify-between items-center gap-4 text-center md:text-left">
+            <p className="text-white/40 text-xs">
+              © 2026 Mi Primer Cumpleaños Ashly Sofía. Todos los derechos reservados.
+            </p>
+            <a 
+              href="https://portafolio-keyler-silva.netlify.app/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary/80 text-xs hover:text-primary transition-colors duration-300 font-medium"
+            >
+              Desarrollado por Keyler Silva
+            </a>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

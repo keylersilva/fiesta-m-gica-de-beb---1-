@@ -38,8 +38,59 @@ import {
   Facebook,
   Youtube,
   Mail,
-  Phone
+  Phone,
+  X,
+  MessageCircle,
+  Sparkles
 } from 'lucide-react';
+
+const OPENWA_SESSION_URL = 'http://localhost:2785/api/sessions/72399631-de09-4968-a6ac-e1bc64ca690e/messages/send-text';
+
+function normalizePhoneNumber(phone: string): string {
+  let cleaned = phone.replace(/[\s\-\(\)]/g, '');
+  if (cleaned.startsWith('+')) {
+    cleaned = cleaned.substring(1);
+  }
+  if (cleaned.startsWith('57') && cleaned.length > 10) {
+    cleaned = cleaned.substring(2);
+  }
+  if (cleaned.length === 10) {
+    cleaned = '57' + cleaned;
+  }
+  return cleaned;
+}
+
+function buildChatId(phone: string): string {
+  const normalized = normalizePhoneNumber(phone);
+  return `${normalized}@c.us`;
+}
+
+function buildConfirmationMessage(name: string): string {
+  return `🎉 *¡Asistencia Confirmada!* 👶🍼
+
+Hola *${name}*, hemos registrado con éxito tu asistencia para el cumpleaños de nuestra bebé Ashly Sofía 🎂✨
+
+📅 *Fecha:* Sábado, 23 de Mayo
+⏰ *Hora:* 4:00 PM
+📍 *Lugar:* [Agregar dirección aquí]
+
+💖 ¡Estamos felices de compartir este momento contigo!`;
+}
+
+async function sendWhatsAppMessage(chatId: string, text: string): Promise<boolean> {
+  try {
+    const response = await fetch(OPENWA_SESSION_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ chatId, text }),
+    });
+    return response.ok;
+  } catch {
+    return false;
+  }
+}
 
 // Types
 interface Config {
@@ -356,6 +407,9 @@ function RegistrationView({ config }: { config: Config | null }) {
   const [errorMessage, setErrorMessage] = useState('');
   const [totalRegistered, setTotalRegistered] = useState(0);
   const [vCode, setVCode] = useState('');
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showErrorModal, setShowErrorModal] = useState(false);
+  const [whatsappSent, setWhatsappSent] = useState(false);
 
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, 'guests'), (snapshot) => {
@@ -376,6 +430,7 @@ function RegistrationView({ config }: { config: Config | null }) {
     if (isFull || !config?.registrationOpen) return;
     
     setStatus('loading');
+    setShowErrorModal(false);
     try {
       const verificationCode = Math.random().toString(36).substring(2, 8).toUpperCase();
       setVCode(verificationCode);
@@ -389,55 +444,34 @@ function RegistrationView({ config }: { config: Config | null }) {
       };
       
       await addDoc(collection(db, 'guests'), guestData);
+      
+      const chatId = buildChatId(formData.whatsapp);
+      const message = buildConfirmationMessage(formData.name);
+      const sent = await sendWhatsAppMessage(chatId, message);
+      setWhatsappSent(sent);
+      setShowSuccessModal(true);
       setStatus('success');
     } catch (err) {
       setStatus('error');
       setErrorMessage("No pudimos completar tu registro. Intenta de nuevo.");
+      setShowErrorModal(true);
     }
   };
 
-  if (status === 'success') {
-    return (
-      <motion.div 
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="max-w-md mx-auto text-center py-12 px-6 bg-white/90 backdrop-blur-md rounded-[3rem] shadow-2xl border border-primary/20 relative"
-      >
-        <div className="absolute -top-6 -left-6 transform -rotate-12">
-           <div className="bg-secondary p-3 rounded-2xl shadow-lg text-primary">
-             <Cake size={32} />
-           </div>
-        </div>
-        <div className="absolute -bottom-6 -right-6 transform rotate-12">
-           <div className="bg-accent p-3 rounded-2xl shadow-lg text-primary">
-             <Baby size={32} />
-           </div>
-        </div>
+  const handleCloseSuccessModal = () => {
+    setShowSuccessModal(false);
+    setFormData({ name: '', whatsapp: '', companions: 0 });
+    setStatus('idle');
+  };
 
-        <div className="w-24 h-24 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
-          <CheckCircle size={48} />
-        </div>
-        <h2 className="text-3xl font-serif font-bold mb-4 text-zinc-800">¡Registro Exitoso!</h2>
-        <p className="text-zinc-600 mb-8 leading-relaxed">
-          ¡Qué alegría! Te esperamos en la celebración de <strong>{config?.eventName}</strong>. 
-          Presenta este código al llegar:
-        </p>
-        <div className="bg-secondary/50 p-8 rounded-3xl border-2 border-dashed border-primary/40 mb-8 group hover:bg-secondary/70 transition-all cursor-default">
-            <p className="text-xs uppercase tracking-[0.3em] font-bold text-primary/60 mb-2">Código de Verificación</p>
-            <span className="text-5xl font-mono font-black tracking-[0.2em] text-primary drop-shadow-sm italic">#{vCode}</span>
-        </div>
-        <button 
-          onClick={() => setStatus('idle')}
-          className="px-6 py-2 bg-zinc-100 text-zinc-500 rounded-full text-sm font-bold hover:bg-zinc-200 transition-all"
-        >
-          Registrar a alguien más
-        </button>
-      </motion.div>
-    );
-  }
+  const handleCloseErrorModal = () => {
+    setShowErrorModal(false);
+    setStatus('idle');
+  };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+    <>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
       <motion.div 
         initial={{ opacity: 0, x: -20 }}
         animate={{ opacity: 1, x: 0 }}
@@ -538,6 +572,120 @@ function RegistrationView({ config }: { config: Config | null }) {
         )}
       </motion.div>
     </div>
+
+    <AnimatePresence>
+      {showSuccessModal && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
+          onClick={handleCloseSuccessModal}
+        >
+          <motion.div
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.8, opacity: 0 }}
+            transition={{ type: 'spring', damping: 20, stiffness: 300 }}
+            className="bg-white/95 backdrop-blur-md rounded-[2rem] shadow-2xl border border-primary/20 max-w-md w-full p-8 relative overflow-hidden"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="absolute -top-4 -left-4 transform -rotate-12">
+              <div className="bg-secondary p-3 rounded-2xl shadow-lg text-primary">
+                <Cake size={28} />
+              </div>
+            </div>
+            <div className="absolute -bottom-4 -right-4 transform rotate-12">
+              <div className="bg-accent p-3 rounded-2xl shadow-lg text-primary">
+                <Baby size={28} />
+              </div>
+            </div>
+            <button
+              onClick={handleCloseSuccessModal}
+              className="absolute top-4 right-4 text-zinc-400 hover:text-zinc-600 transition-colors"
+            >
+              <X size={20} />
+            </button>
+
+            <div className="text-center">
+              <div className="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
+                <CheckCircle size={40} />
+              </div>
+              <h2 className="text-3xl font-serif font-bold mb-4 text-zinc-800">¡Registro Exitoso!</h2>
+              <p className="text-zinc-600 mb-6 leading-relaxed">
+                ¡Qué alegría! Te esperamos en la celebración. Presenta este código al llegar:
+              </p>
+              <div className="bg-secondary/50 p-6 rounded-2xl border-2 border-dashed border-primary/40 mb-6">
+                <p className="text-xs uppercase tracking-[0.3em] font-bold text-primary/60 mb-2">Código de Verificación</p>
+                <span className="text-4xl font-mono font-black tracking-[0.2em] text-primary">#{vCode}</span>
+              </div>
+              {whatsappSent ? (
+                <div className="flex items-center justify-center gap-2 text-green-600 text-sm font-medium mb-6">
+                  <MessageCircle size={18} />
+                  <span>Mensaje de confirmación enviado por WhatsApp</span>
+                </div>
+              ) : (
+                <div className="flex items-center justify-center gap-2 text-amber-600 text-sm font-medium mb-6">
+                  <Sparkles size={18} />
+                  <span>Prepárate para recibir tu mensaje de confirmación</span>
+                </div>
+              )}
+              <button
+                onClick={handleCloseSuccessModal}
+                className="px-6 py-2 bg-primary text-white rounded-full text-sm font-bold hover:opacity-90 transition-all shadow-lg shadow-primary/20"
+              >
+                Registrar a alguien más
+              </button>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+
+    <AnimatePresence>
+      {showErrorModal && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
+          onClick={handleCloseErrorModal}
+        >
+          <motion.div
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.8, opacity: 0 }}
+            transition={{ type: 'spring', damping: 20, stiffness: 300 }}
+            className="bg-white/95 backdrop-blur-md rounded-[2rem] shadow-2xl border border-red-200 max-w-md w-full p-8 relative"
+            onClick={e => e.stopPropagation()}
+          >
+            <button
+              onClick={handleCloseErrorModal}
+              className="absolute top-4 right-4 text-zinc-400 hover:text-zinc-600 transition-colors"
+            >
+              <X size={20} />
+            </button>
+
+            <div className="text-center">
+              <div className="w-20 h-20 bg-red-100 text-red-500 rounded-full flex items-center justify-center mx-auto mb-6">
+                <X size={40} />
+              </div>
+              <h2 className="text-2xl font-serif font-bold mb-4 text-zinc-800">Ups, algo salió mal</h2>
+              <p className="text-zinc-600 mb-6 leading-relaxed">
+                {errorMessage}
+              </p>
+              <button
+                onClick={handleCloseErrorModal}
+                className="px-6 py-2 bg-zinc-100 text-zinc-700 rounded-full text-sm font-bold hover:bg-zinc-200 transition-all"
+              >
+                Entendido
+              </button>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  </>
   );
 }
 

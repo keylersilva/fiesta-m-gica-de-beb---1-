@@ -45,7 +45,7 @@ import {
 } from 'lucide-react';
 
 const OPENWA_SESSION_URL = import.meta.env.VITE_OPENWA_URL || 'http://localhost:2785/api/sessions/72399631-de09-4968-a6ac-e1bc64ca690e/messages/send-text';
-const OPENWA_FUNCTION_URL = import.meta.env.VITE_OPENWA_FUNCTION_URL || '';
+const API_FUNCTION_URL = import.meta.env.VITE_FUNCTION_URL || '/api/send-whatsapp';
 
 function normalizePhoneNumber(phone: string): string {
   let cleaned = phone.replace(/[\s\-\(\)]/g, '');
@@ -80,8 +80,20 @@ Hola *${name}*, hemos registrado con éxito tu asistencia para el cumpleaños de
 
 async function sendWhatsAppMessage(chatId: string, text: string): Promise<boolean> {
   try {
-    const url = OPENWA_FUNCTION_URL || OPENWA_SESSION_URL;
-    const response = await fetch(url, {
+    const response = await fetch(API_FUNCTION_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ chatId, text }),
+    });
+    if (response.ok) return true;
+  } catch {
+    // fallback to direct OpenWA (dev mode)
+  }
+
+  try {
+    const response = await fetch(OPENWA_SESSION_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
